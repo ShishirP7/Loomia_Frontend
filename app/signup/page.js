@@ -1,31 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+
+const API_BASE = "http://localhost:5000";
 
 export default function SignupPage() {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // If already logged in, redirect to /convert
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/convert");
+    }
+  }, [router]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setMessage("Account created! This is a demo – you can log in with demo@demo.com / password123.");
-    setTimeout(() => {
-      router.push("/login");
-    }, 1200);
+    setMessage("");
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Signup failed");
+      }
+
+      setMessage(data.message || "Account created! You can now log in.");
+      setTimeout(() => {
+        router.push("/login");
+      }, 1200);
+    } catch (err) {
+      console.error("Signup error:", err);
+      setError(err.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 pt-16 pb-24">
       <h1 className="text-3xl font-semibold text-slate-50">Sign up</h1>
       <p className="mt-2 text-sm text-slate-300">
-        This page is static: we don&apos;t actually store new users.
+        Create your Loomia account to save summaries and quizzes.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -71,6 +109,12 @@ export default function SignupPage() {
           />
         </div>
 
+        {error && (
+          <p className="text-xs text-rose-400 bg-rose-950/40 border border-rose-800/60 rounded-lg px-3 py-2">
+            {error}
+          </p>
+        )}
+
         {message && (
           <p className="text-xs text-emerald-300 bg-emerald-950/40 border border-emerald-800/60 rounded-lg px-3 py-2">
             {message}
@@ -79,9 +123,10 @@ export default function SignupPage() {
 
         <button
           type="submit"
-          className="w-full rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+          disabled={loading}
+          className="w-full rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-60"
         >
-          Create account
+          {loading ? "Creating account..." : "Create account"}
         </button>
       </form>
 

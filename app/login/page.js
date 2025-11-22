@@ -1,33 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const DEMO_USER = {
-  email: "demo@demo.com",
-  password: "password123"
-};
+const API_BASE = "http://localhost:5000";
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // If already logged in, redirect to /convert
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/convert");
+    }
+  }, [router]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (
-      form.email === DEMO_USER.email &&
-      form.password === DEMO_USER.password
-    ) {
-      setError("");
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Login failed");
+      }
+
+      // data: { token, user, name }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem(
+          "user",
+          JSON.stringify({ email: data.user, name: data.name })
+        );
+      }
+
       router.push("/convert");
-    } else {
-      setError("Invalid credentials. Use demo@demo.com / password123.");
+    } catch (err) {
+      console.error("Login error:", err);
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -35,7 +66,7 @@ export default function LoginPage() {
     <div className="mx-auto flex max-w-md flex-col px-4 pt-16 pb-24">
       <h1 className="text-3xl font-semibold text-slate-50">Log in</h1>
       <p className="mt-2 text-sm text-slate-300">
-        Static auth only. No real accounts.
+        Enter your email and password to access Loomia.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
@@ -49,7 +80,7 @@ export default function LoginPage() {
             value={form.email}
             onChange={handleChange}
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
-            placeholder="demo@demo.com"
+            placeholder="you@example.com"
             required
           />
         </div>
@@ -63,7 +94,7 @@ export default function LoginPage() {
             value={form.password}
             onChange={handleChange}
             className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950/80 px-3 py-2 text-sm text-slate-100 outline-none focus:border-indigo-400"
-            placeholder="password123"
+            placeholder="********"
             required
           />
         </div>
@@ -76,9 +107,10 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="w-full rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400"
+          disabled={loading}
+          className="w-full rounded-full bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-60"
         >
-          Log in
+          {loading ? "Logging in..." : "Log in"}
         </button>
       </form>
 

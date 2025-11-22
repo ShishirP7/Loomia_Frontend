@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const FALLBACK_TRANSCRIPT = `Upload a video and click "Start Transcription" 
 to see the generated transcript here.`;
+
+const API_BASE = "http://localhost:5000";
 
 export default function ConvertPage() {
   const router = useRouter();
@@ -18,7 +20,15 @@ export default function ConvertPage() {
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("Idle");
 
-  // ✅ FIXED: accept event parameter (was using `event` without args)
+  // 🔒 Protect route: require login
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    }
+  }, [router]);
+
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -41,11 +51,19 @@ export default function ConvertPage() {
       setStatus("Uploading & processing on server...");
 
       const formData = new FormData();
-      // MUST MATCH multer.single("video") ON THE BACKEND
       formData.append("video", selectedFile);
 
-      const res = await fetch("http://localhost:5000/upload", {
+      let headers = {};
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        if (token) {
+          headers = { Authorization: `Bearer ${token}` };
+        }
+      }
+
+      const res = await fetch(`${API_BASE}/upload`, {
         method: "POST",
+        headers,
         body: formData,
       });
 
@@ -55,10 +73,18 @@ export default function ConvertPage() {
       }
 
       const data = await res.json();
+      // { summary, fullText, quiz }
 
       setTranscript(data.fullText || "");
       setSummary(data.summary || "");
       setStatus("Transcription completed ✅");
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("transcript", data.fullText || "");
+        if (Array.isArray(data.quiz)) {
+          sessionStorage.setItem("quiz", JSON.stringify(data.quiz));
+        }
+      }
     } catch (err) {
       console.error("Frontend upload error:", err);
       setError(err.message || "Something went wrong while transcribing.");
@@ -68,18 +94,13 @@ export default function ConvertPage() {
     }
   };
 
-const goToQuiz = () => {
-  if (!transcript) {
-    setError("Please run transcription first before generating a quiz.");
-    return;
-  }
-
-  if (typeof window !== "undefined") {
-    sessionStorage.setItem("transcript", transcript);
-  }
-
-  router.push("/quiz");
-};
+  const goToQuiz = () => {
+    if (!transcript) {
+      setError("Please run transcription first before generating a quiz.");
+      return;
+    }
+    router.push("/quiz");
+  };
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-12 pb-24">
