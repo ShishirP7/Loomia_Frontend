@@ -1,15 +1,25 @@
 {
   "pages": {
-    "/page": [
+    "/quiz/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/quiz/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
+    ],
+    "/convert/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/convert/page.js"
     ],
     "/login/page": [
       "static/chunks/webpack.js",
@@ -21,15 +31,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/signup/page.js"
     ],
-    "/convert/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/convert/page.js"
-    ],
-    "/quiz/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/quiz/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

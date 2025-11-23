@@ -25,42 +25,45 @@ export default function LoginPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(form),
-      });
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(form),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Login failed");
-      }
-
-      // data: { token, user, name }
-      if (typeof window !== "undefined") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem(
-          "user",
-          JSON.stringify({ email: data.user, name: data.name })
-        );
-      }
-
-      router.push("/convert");
-    } catch (err) {
-      console.error("Login error:", err);
-      setError(err.message || "Login failed");
-    } finally {
-      setLoading(false);
+    if (!res.ok) {
+      throw new Error(data.error || "Login failed");
     }
-  };
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("token", data.token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify({ email: data.user, name: data.name })
+      );
+
+      // 🔔 notify navbar that auth state changed
+      window.dispatchEvent(new Event("loomia-auth-changed"));
+    }
+
+    router.push("/convert");
+  } catch (err) {
+    console.error("Login error:", err);
+    setError(err.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 pt-16 pb-24">
