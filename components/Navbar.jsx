@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-
 export default function Navbar() {
   const [user, setUser] = useState(null);
 
@@ -26,10 +25,8 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    // Run once on mount
     readUserFromStorage();
 
-    // Listen for custom auth-change events
     const handler = () => readUserFromStorage();
     window.addEventListener("loomia-auth-changed", handler);
 
@@ -39,44 +36,70 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = () => {
+    // 🔥 Remove all auth and cached data
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    // you can also redirect with router.push("/") if you want
-    window.location.reload();
+    localStorage.removeItem("transcript");
+    localStorage.removeItem("summary");
+    localStorage.removeItem("quiz");
+
+    sessionStorage.removeItem("transcript");
+    sessionStorage.removeItem("summary");
+    sessionStorage.removeItem("quiz");
+
+    // 🔥 Clear cookies (if used)
+    document.cookie.split(";").forEach((cookie) => {
+      const name = cookie.split("=")[0].trim();
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+    });
+
+    window.dispatchEvent(new Event("loomia-auth-changed"));
+    window.location.href = "/";
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/70 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-violet-100 bg-[#f5f2ff]/90 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500">
             <span className="text-sm font-bold text-white">AI</span>
           </div>
-          <span className="text-lg font-semibold tracking-tight">
+          <span className="text-lg font-semibold tracking-tight text-slate-900">
             Loomia
           </span>
         </Link>
 
+        {/* IF NOT LOGGED IN */}
         {!user && (
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/login" className="text-slate-200 hover:text-white">
+            <Link
+              href="/login"
+              className="text-slate-700 hover:text-violet-600 transition"
+            >
               Log in
             </Link>
             <Link
               href="/signup"
-              className="rounded-full bg-indigo-500 px-4 py-2 font-medium text-white hover:bg-indigo-400"
+              className="rounded-full bg-violet-500 px-4 py-2 font-medium text-white hover:bg-violet-400 transition"
             >
               Start for free
             </Link>
           </div>
         )}
 
+        {/* IF LOGGED IN */}
         {user && (
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-200">Hi, {user.name}</span>
+            <Link
+              href="/saved"
+              className="text-slate-700 hover:text-violet-600 transition font-medium"
+            >
+              Saved items
+            </Link>
+            <span className="text-slate-800">Hi, {user.name}</span>
             <button
               onClick={handleLogout}
-              className="text-slate-200 hover:text-white"
+              className="text-slate-700 hover:text-red-500 transition font-medium"
             >
               Logout
             </button>

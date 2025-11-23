@@ -4,12 +4,27 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const API_BASE = "http://localhost:5000";
+
+// Simple Fisher–Yates shuffle
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 export default function QuizPage() {
   const router = useRouter();
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState(null);
+
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
 
   // 🔒 Protect route: require login & load quiz from sessionStorage
   useEffect(() => {
@@ -36,7 +51,7 @@ export default function QuizPage() {
         id: idx + 1,
         ...q,
       }));
-      setQuestions(withIds);
+      setQuestions(shuffleArray(withIds)); // randomize once
     } catch (err) {
       console.error("Failed to parse stored quiz:", err);
       setError("Quiz data is corrupted. Please re-generate the quiz.");
@@ -53,105 +68,206 @@ export default function QuizPage() {
     setSubmitted(true);
   };
 
+  const handleRetry = () => {
+    if (!questions.length) return;
+    setSubmitted(false);
+    setAnswers({});
+    setError(null);
+    setSaveMessage("");
+    setQuestions((prev) => shuffleArray(prev)); // new order
+  };
+
+  const handleSaveQuiz = async () => {
+    try {
+      if (typeof window === "undefined") return;
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      // 🔴 ASK USER FOR TITLE BEFORE SAVING
+      const input = window.prompt("Enter a title for this quiz:");
+      if (!input || !input.trim()) {
+        setSaveMessage("Saving cancelled: title is required.");
+        return;
+      }
+      const title = input.trim();
+
+      setSaving(true);
+      setSaveMessage("");
+
+      const summary =
+        sessionStorage.getItem("summary") || "Transcript summary not available.";
+      const transcript =
+        sessionStorage.getItem("transcript") || "";
+
+      const res = await fetch(`${API_BASE}/data/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title,
+          summary,
+          transcript,   // ✅ now saved
+          quiz: questions,
+        }),
+      });
+
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Failed to save quiz");
+      }
+
+      setSaveMessage("✅ Quiz saved to your profile!");
+    } catch (err) {
+      console.error("Save quiz error:", err);
+      setSaveMessage(err.message || "Failed to save quiz.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const score =
     submitted && questions.length > 0
       ? questions.reduce(
-          (sum, q) => (answers[q.id] === q.correct ? sum + 1 : sum),
-          0
-        )
+        (sum, q) => (answers[q.id] === q.correct ? sum + 1 : sum),
+        0
+      )
       : null;
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pt-12 pb-24">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold text-slate-50">
-            Quiz from Transcript
-          </h1>
-          <p className="mt-2 text-sm text-slate-300">
-            Answer the questions below based on the transcript generated on the
-            previous page.
-          </p>
+    <div className="min-h-screen bg-[#f5f2ff]">
+      <div className="mx-auto max-w-4xl px-4 pt-12 pb-24">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold text-slate-900">
+              Quiz from Transcript
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+              Answer the questions below based on the transcript generated on
+              the previous page.
+            </p>
+          </div>
+          <Link
+            href="/convert"
+            className="rounded-full border border-violet-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:border-violet-400 shadow-sm"
+          >
+            ← Back to transcript
+          </Link>
         </div>
-        <Link
-          href="/convert"
-          className="rounded-full border border-slate-700 px-4 py-2 text-xs font-medium text-slate-200 hover:border-indigo-400"
-        >
-          ← Back to transcript
-        </Link>
-      </div>
 
-      {error && (
-        <p className="mt-6 text-sm text-red-400">
-          {error}
-        </p>
-      )}
+        {error && (
+          <p className="mt-6 text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
+            {error}
+          </p>
+        )}
 
-      {!error && questions.length === 0 && (
-        <p className="mt-6 text-sm text-slate-300">
-          Loading quiz...
-        </p>
-      )}
+        {!error && questions.length === 0 && (
+          <p className="mt-6 text-sm text-slate-600">Loading quiz...</p>
+        )}
 
-      {!error && questions.length > 0 && (
-        <>
-          <div className="mt-8 space-y-6">
-            {questions.map((q, idx) => (
-              <div
-                key={q.id}
-                className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5"
-              >
-                <p className="text-sm font-semibold text-slate-50">
-                  Q{idx + 1}. {q.question}
-                </p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {q.options.map((opt, i) => {
-                    const isSelected = answers[q.id] === i;
-                    const isCorrect = submitted && q.correct === i;
-                    const isWrong = submitted && isSelected && q.correct !== i;
+        {!error && questions.length > 0 && (
+          <>
+            <div className="mt-8 space-y-6">
+              {questions.map((q, idx) => (
+                <div
+                  key={q.id}
+                  className="rounded-2xl border border-violet-100 bg-white/90 p-5 shadow-sm"
+                >
+                  <p className="text-sm font-semibold text-slate-900">
+                    Q{idx + 1}. {q.question}
+                  </p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {q.options.map((opt, i) => {
+                      const isSelected = answers[q.id] === i;
+                      const isCorrect = submitted && q.correct === i;
+                      const isWrong =
+                        submitted && isSelected && q.correct !== i;
 
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleSelect(q.id, i)}
-                        className={[
-                          "rounded-xl border px-3 py-2 text-left text-sm transition",
-                          isSelected
-                            ? "border-indigo-400 bg-indigo-500/20"
-                            : "border-slate-700 bg-slate-950/70 hover:border-indigo-400",
-                          isCorrect && "border-emerald-400 bg-emerald-500/20",
-                          isWrong && "border-rose-400 bg-rose-500/20",
-                        ].join(" ")}
-                      >
-                        {opt}
-                      </button>
-                    );
-                  })}
+                      let base =
+                        "rounded-xl border px-3 py-2 text-left text-sm transition";
+                      if (isCorrect) {
+                        base +=
+                          " border-emerald-400 bg-emerald-50 text-emerald-900";
+                      } else if (isWrong) {
+                        base += " border-rose-400 bg-rose-50 text-rose-900";
+                      } else if (isSelected) {
+                        base +=
+                          " border-violet-400 bg-violet-50 text-violet-900";
+                      } else {
+                        base +=
+                          " border-violet-100 bg-violet-50/60 text-slate-800 hover:border-violet-400";
+                      }
+
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleSelect(q.id, i)}
+                          className={base}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <div className="mt-8 flex items-center justify-between">
-            <button
-              onClick={handleSubmit}
-              className="rounded-full bg-emerald-500 px-6 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400"
-            >
-              {submitted ? "Submitted" : "Submit Quiz"}
-            </button>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleSubmit}
+                  className="rounded-full bg-emerald-500 px-6 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 shadow-md"
+                >
+                  {submitted ? "Submitted" : "Submit Quiz"}
+                </button>
 
-            {submitted && (
-              <div className="rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm text-slate-200">
-                Score:{" "}
-                <span className="font-semibold text-emerald-300">
-                  {score} / {questions.length}
-                </span>
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="rounded-full border border-violet-200 bg-white px-6 py-2 text-sm font-semibold text-slate-700 hover:border-violet-400 shadow-sm"
+                >
+                  Retry Quiz
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveQuiz}
+                  disabled={saving}
+                  className="rounded-full bg-violet-500 px-6 py-2 text-sm font-semibold text-white hover:bg-violet-400 disabled:opacity-60 shadow-md"
+                >
+                  {saving ? "Saving..." : "Save Quiz to Profile"}
+                </button>
               </div>
-            )}
-          </div>
-        </>
-      )}
+
+              <div className="flex flex-col items-start sm:items-end gap-2">
+                {submitted && (
+                  <div className="rounded-full border border-violet-200 bg-white px-4 py-2 text-sm text-slate-800 shadow-sm">
+                    Score:{" "}
+                    <span className="font-semibold text-emerald-600">
+                      {score} / {questions.length}
+                    </span>
+                  </div>
+                )}
+
+                {saveMessage && (
+                  <p className="text-xs text-slate-600 bg-violet-50 border border-violet-100 rounded-full px-3 py-1">
+                    {saveMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
