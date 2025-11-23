@@ -1,12 +1,12 @@
-# Video to Text AI 
+# Video to Text AI Loomia 
 
 ## Routes
 
 - `/` – landing page
-- `/convert` – fake upload + sample transcript + button to go to quiz
-- `/quiz` – static quiz generated from that transcript
-- `/login` – static login (use **demo@demo.com / password123**)
-- `/signup` – static signup that just redirects you to login
+- `/convert` –  upload +  transcript + button to go to quiz
+- `/quiz` –  quiz generated from that transcript
+- `/login` –  login using credentials that used in signup . 
+- `/signup` – after signup that just redirects you to login
 
 
 ```bash
