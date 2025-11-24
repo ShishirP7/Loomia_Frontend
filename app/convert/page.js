@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { io } from "socket.io-client";
 
 const FALLBACK_TRANSCRIPT = `Upload a video and click "Start Transcription" 
 to see the generated transcript here.`;
@@ -19,9 +20,11 @@ export default function ConvertPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("Idle");
-  const [hasQuiz, setHasQuiz] = useState(false); // ✅ track if quiz exists
+  const [hasQuiz, setHasQuiz] = useState(false);
+  const [socket, setSocket] = useState(null);
+  const [progressPercent, setProgressPercent] = useState(0);
 
-  // 🔒 Protect route: require login + restore saved data from localStorage
+  // 🔒 Protect route and restore saved data
   useEffect(() => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("token");
@@ -30,21 +33,24 @@ export default function ConvertPage() {
       return;
     }
 
-    // ✅ Restore previous transcript/summary/quiz from localStorage
     const savedTranscript = localStorage.getItem("transcript");
     const savedSummary = localStorage.getItem("summary");
     const savedQuiz = localStorage.getItem("quiz");
 
-    if (savedTranscript) {
-      setTranscript(savedTranscript);
-      setStatus("Loaded previous transcription");
-    }
-    if (savedSummary) {
-      setSummary(savedSummary);
-    }
-    if (savedQuiz) {
-      setHasQuiz(true);
-    }
+    if (savedTranscript) setTranscript(savedTranscript);
+    if (savedSummary) setSummary(savedSummary);
+    if (savedQuiz) setHasQuiz(true);
+
+    // Initialize Socket.IO
+    const newSocket = io(API_BASE);
+    setSocket(newSocket);
+
+    newSocket.on("uploadProgress", ({ progress, message }) => {
+      setProgressPercent(progress);
+      setStatus(`${message} (${Math.round(progress)}%)`);
+    });
+
+    return () => newSocket.disconnect();
   }, [router]);
 
   const handleFileChange = (event) => {
@@ -54,6 +60,7 @@ export default function ConvertPage() {
       setSelectedFileName(file.name);
       setError(null);
       setStatus("File selected");
+      setProgressPercent(0);
     }
   };
 
@@ -67,16 +74,19 @@ export default function ConvertPage() {
       setIsUploading(true);
       setError(null);
       setStatus("Uploading & processing on server...");
+      setProgressPercent(0);
 
       const formData = new FormData();
       formData.append("video", selectedFile);
 
+      if (socket?.id) {
+        formData.append("socketId", socket.id);
+      }
+
       let headers = {};
       if (typeof window !== "undefined") {
         const token = localStorage.getItem("token");
-        if (token) {
-          headers = { Authorization: `Bearer ${token}` };
-        }
+        if (token) headers = { Authorization: `Bearer ${token}` };
       }
 
       const res = await fetch(`${API_BASE}/upload`, {
@@ -91,8 +101,6 @@ export default function ConvertPage() {
       }
 
       const data = await res.json();
-      // { summary, fullText, quiz }
-
       const fullText = data.fullText || "";
       const summaryText = data.summary || "";
       const quizArray = Array.isArray(data.quiz) ? data.quiz : null;
@@ -101,31 +109,24 @@ export default function ConvertPage() {
       setSummary(summaryText);
       setStatus("Transcription completed ✅");
       setHasQuiz(!!quizArray && quizArray.length > 0);
+      setProgressPercent(100);
 
       if (typeof window !== "undefined") {
-        // ✅ sessionStorage (used by /quiz page)
         sessionStorage.setItem("transcript", fullText);
         sessionStorage.setItem("summary", summaryText);
-        if (quizArray) {
-          const quizString = JSON.stringify(quizArray);
-          sessionStorage.setItem("quiz", quizString);
-        }
+        if (quizArray) sessionStorage.setItem("quiz", JSON.stringify(quizArray));
 
-        // ✅ localStorage (for restoring when user comes back later)
         localStorage.setItem("transcript", fullText);
         localStorage.setItem("summary", summaryText);
-        if (quizArray) {
-          const quizString = JSON.stringify(quizArray);
-          localStorage.setItem("quiz", quizString);
-        } else {
-          localStorage.removeItem("quiz");
-        }
+        if (quizArray) localStorage.setItem("quiz", JSON.stringify(quizArray));
+        else localStorage.removeItem("quiz");
       }
     } catch (err) {
       console.error("Frontend upload error:", err);
       setError(err.message || "Something went wrong while transcribing.");
       setStatus("Error during transcription ❌");
       setHasQuiz(false);
+      setProgressPercent(0);
     } finally {
       setIsUploading(false);
     }
@@ -150,26 +151,31 @@ export default function ConvertPage() {
           Convert Video to Text
         </h1>
         <p className="mt-2 text-sm text-slate-600">
-          Upload a video and preview the
-          transcript and summary generated from it.
+          Upload a video and preview the transcript and summary generated from it.
         </p>
 
-        {/* Status indicator */}
+        {/* Status and Progress Bar */}
         <p className="mt-1 text-xs text-slate-500">
           Status:{" "}
           <span className="font-mono text-violet-700 bg-violet-50 px-2 py-0.5 rounded-full">
             {status}
           </span>
         </p>
+        <div className="relative w-full h-2 mt-1 rounded-full bg-violet-100">
+          <div
+            className="absolute h-2 rounded-full bg-violet-500 transition-all duration-200"
+            style={{ width: `${progressPercent}%` }}
+          ></div>
+        </div>
 
         <div className="mt-8 grid gap-8 md:grid-cols-[minmax(0,1.05fr)_minmax(0,1.25fr)]">
-          {/* LEFT: Upload */}
+          {/* LEFT: Upload Section */}
           <section className="rounded-3xl border border-violet-100 bg-white/90 p-6 shadow-[0_14px_35px_rgba(71,49,192,0.12)]">
             <h2 className="text-lg font-semibold text-slate-900">
               1. Upload your video
             </h2>
             <p className="mt-2 text-xs text-slate-600">
-              Accepted formats would normally include MP4, MOV, MKV, etc.
+              Accepted formats: MP4, MOV, MKV, etc.
             </p>
 
             <label className="mt-5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-violet-200 bg-violet-50/70 px-4 py-10 text-center text-sm text-slate-700 hover:border-violet-400 hover:bg-violet-50">
@@ -233,15 +239,11 @@ export default function ConvertPage() {
               )}
             </div>
 
-            {/* Bigger transcript panel */}
+            {/* Transcript panel */}
             <div className="mt-4 flex-1 overflow-hidden rounded-2xl border border-violet-100 bg-violet-50/70">
               <div className="flex items-center justify-between border-b border-violet-100 px-4 py-2 text-[11px] text-slate-600 bg-violet-50">
-                <span className="font-semibold text-slate-800">
-                  Transcript
-                </span>
-                <span className="text-[10px]">
-                  Scroll to read full text
-                </span>
+                <span className="font-semibold text-slate-800">Transcript</span>
+                <span className="text-[10px]">Scroll to read full text</span>
               </div>
               <div className="max-h-80 md:max-h-96 overflow-y-auto px-4 py-3 text-sm leading-relaxed text-slate-800 whitespace-pre-wrap">
                 {transcript || FALLBACK_TRANSCRIPT}
