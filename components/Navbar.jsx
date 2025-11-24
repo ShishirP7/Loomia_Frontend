@@ -7,8 +7,9 @@ import { usePathname } from "next/navigation";
 export default function Navbar() {
   const [user, setUser] = useState(null);
   const [showPromoModal, setShowPromoModal] = useState(false);
+  const [showPlansModal, setShowPlansModal] = useState(false);
   const pathname = usePathname();
-
+  console.log(user);
   const readUserFromStorage = () => {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("token");
@@ -35,10 +36,6 @@ export default function Navbar() {
     const handler = () => readUserFromStorage();
     window.addEventListener("loomia-auth-changed", handler);
 
-    // 🔔 Show promo modal only if:
-    // - not logged in
-    // - not on login / signup
-    // - user hasn't dismissed it before
     const token = localStorage.getItem("token");
     const seen = localStorage.getItem("loomia_plan_modal_seen");
 
@@ -59,7 +56,6 @@ export default function Navbar() {
   };
 
   const handleLogout = () => {
-    // 🔥 Remove all auth and cached data
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("transcript");
@@ -70,7 +66,6 @@ export default function Navbar() {
     sessionStorage.removeItem("summary");
     sessionStorage.removeItem("quiz");
 
-    // 🔥 Clear cookies (if used)
     document.cookie.split(";").forEach((cookie) => {
       const name = cookie.split("=")[0].trim();
       document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
@@ -80,12 +75,14 @@ export default function Navbar() {
     window.location.href = "/";
   };
 
+  const isLoggedIn = !!user;
+
   return (
     <>
       {/* 🎉 Moving promo banner above navbar */}
       <div className="w-full border-b border-violet-100 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-amber-400">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 text-xs text-white">
-          <div className="mx-auto flex max-w-6xl items-center gap-3 px-4">
+          <div className="flex flex-1 items-center gap-3 overflow-hidden">
             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/30 text-sm">
               🎉
             </span>
@@ -99,25 +96,26 @@ export default function Navbar() {
             </div>
           </div>
 
-          <Link
-            href="/pricing"
-            className="hidden sm:inline-flex rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-violet-700 hover:bg-white"
+          {/* View plans button – visible on all sizes */}
+          <button
+            onClick={() => setShowPlansModal(true)}
+            className="inline-flex rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-violet-700 hover:bg-white"
           >
             View plans
-          </Link>
+          </button>
         </div>
 
-        {/* simple marquee keyframes */}
-       <style jsx>{`
-    @keyframes marquee {
-      0% {
-        transform: translateX(100%);
-      }
-      100% {
-        transform: translateX(-100%);
-      }
-    }
-  `}</style>
+        {/* marquee keyframes */}
+        <style jsx>{`
+          @keyframes marquee {
+            0% {
+              transform: translateX(100%);
+            }
+            100% {
+              transform: translateX(-100%);
+            }
+          }
+        `}</style>
       </div>
 
       {/* 🌈 Navbar */}
@@ -148,15 +146,24 @@ export default function Navbar() {
           )}
 
           {/* IF LOGGED IN */}
+
           {user && (
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-3 sm:gap-4 text-sm">
+              <div
+                className="text-slate-700 hover:text-violet-600 transition
+              font-medium cursor-pointer"
+              >
+                Hi, {user?.name}
+              </div>
               <Link
                 href="/saved"
-                className="text-slate-700 hover:text-violet-600 transition font-medium"
+                className="text-slate-700 hover:text-violet-600 transition font-medium "
               >
                 Saved items
               </Link>
-              <span className="text-slate-800">Hi, {user.name}</span>
+              <span className="hidden xs:inline text-slate-800">
+                Hi, {user.name}
+              </span>
               <button
                 onClick={handleLogout}
                 className="text-slate-700 hover:text-red-500 transition font-medium"
@@ -168,12 +175,11 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* 🎁 Black Friday / Plans modal */}
+      {/* 🎁 Black Friday / Plans promo modal (auto) */}
       {showPromoModal && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm px-3">
           <div className="relative w-full max-w-lg rounded-3xl bg-gradient-to-b from-black via-slate-900 to-black p-[1px] shadow-2xl">
-            <div className="relative rounded-3xl bg-[radial-gradient(circle_at_top,_#facc15_0,_transparent_45%),_radial-gradient(circle_at_bottom,_#a855f7_0,_transparent_45%),_#020617] px-8 py-8 text-center text-slate-50 overflow-hidden">
-              {/* close */}
+            <div className="relative rounded-3xl bg-[radial-gradient(circle_at_top,_#facc15_0,_transparent_45%),_radial-gradient(circle_at_bottom,_#a855f7_0,_transparent_45%),_#020617] px-6 py-7 sm:px-8 sm:py-8 text-center text-slate-50 overflow-hidden">
               <button
                 onClick={dismissPromoModal}
                 className="absolute right-4 top-4 text-slate-300 hover:text-white text-sm"
@@ -185,12 +191,14 @@ export default function Navbar() {
               <p className="text-xs uppercase tracking-[0.3em] text-amber-300">
                 Limited Time Discount
               </p>
-              <h2 className="mt-2 text-3xl font-semibold">Black Friday</h2>
+              <h2 className="mt-2 text-2xl sm:text-3xl font-semibold">
+                Black Friday
+              </h2>
               <p className="mt-1 text-sm text-slate-300">
                 Upgrade Loomia and turn hours of video into study-ready quizzes.
               </p>
 
-              <div className="mt-6 rounded-2xl bg-red-600 px-4 py-3 text-2xl font-bold">
+              <div className="mt-5 rounded-2xl bg-red-600 px-4 py-3 text-2xl font-bold">
                 Save 50%
               </div>
               <p className="mt-2 text-xs text-slate-300">
@@ -201,11 +209,11 @@ export default function Navbar() {
               <button
                 onClick={() => {
                   dismissPromoModal();
-                  window.location.href = "/pricing";
+                  setShowPlansModal(true);
                 }}
-                className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400 shadow-lg"
+                className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-blue-500 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-400 shadow-lg"
               >
-                🚀 Upgrade Now
+                🚀 View available plans
               </button>
 
               <button
@@ -214,6 +222,127 @@ export default function Navbar() {
               >
                 Maybe later
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 📦 Plans modal (Basic / Plus / Premium) */}
+      {showPlansModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-3">
+          <div className="w-full max-w-4xl rounded-3xl bg-[#f5f2ff] p-4 sm:p-6 shadow-2xl border border-violet-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+              <div>
+                <h2 className="text-lg sm:text-xl font-semibold text-slate-900">
+                  Choose your Loomia plan
+                </h2>
+                <p className="text-[11px] sm:text-xs text-slate-600">
+                  All plans include AI transcription, summaries, and quiz
+                  generation.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowPlansModal(false)}
+                className="self-end text-slate-500 hover:text-slate-800 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-4 sm:gap-5 grid-cols-1 md:grid-cols-3">
+              {/* Basic */}
+              <div className="rounded-2xl border border-violet-100 bg-white p-4 text-sm flex flex-col">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase text-slate-500">
+                    Basic
+                  </p>
+                  {isLoggedIn && (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                      Current plan
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xl font-bold text-slate-900">Free</p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Perfect to try Loomia.
+                </p>
+                <ul className="mt-3 space-y-1 text-[11px] text-slate-700 flex-1">
+                  <li>• Short videos (up to 5 min)</li>
+                  <li>• Basic transcript & summary</li>
+                  <li>• Up to 3 saved items</li>
+                  <li>• Limited quiz questions</li>
+                </ul>
+                <button
+                  disabled={isLoggedIn}
+                  onClick={() => {
+                    if (!isLoggedIn) {
+                      setShowPlansModal(false);
+                      window.location.href = "/signup";
+                    }
+                  }}
+                  className="mt-4 w-full rounded-full border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700 hover:border-violet-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isLoggedIn ? "You’re on this plan" : "Start for free"}
+                </button>
+              </div>
+
+              {/* Plus */}
+              <div className="rounded-2xl border border-violet-400 bg-violet-600/90 p-4 text-sm text-white flex flex-col shadow-lg">
+                <p className="text-xs font-semibold uppercase text-amber-200">
+                  Plus · Most Popular
+                </p>
+                <p className="mt-1 text-xl font-bold">$9.99 / month</p>
+                <p className="mt-1 text-[11px] text-violet-100">
+                  For regular learners & creators.
+                </p>
+                <ul className="mt-3 space-y-1 text-[11px] text-violet-50 flex-1">
+                  <li>• Longer videos (up to ~30 min)</li>
+                  <li>• Higher accuracy transcripts</li>
+                  <li>• Detailed AI summaries</li>
+                  <li>• Unlimited quizzes & retries</li>
+                  <li>• Save up to 50 items</li>
+                </ul>
+                <button
+                  onClick={() =>
+                    alert(
+                      "Plus plan is coming soon! For now, all users are on the Basic plan."
+                    )
+                  }
+                  className="mt-4 w-full rounded-full bg-white px-3 py-2 text-xs font-semibold text-violet-700 hover:bg-violet-50"
+                >
+                  Choose Plus
+                </button>
+              </div>
+
+              {/* Premium */}
+              <div className="rounded-2xl border border-violet-100 bg-white p-4 text-sm flex flex-col">
+                <p className="text-xs font-semibold uppercase text-slate-500">
+                  Premium
+                </p>
+                <p className="mt-1 text-xl font-bold text-slate-900">
+                  $19.99 / month
+                </p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  For teachers & power users.
+                </p>
+                <ul className="mt-3 space-y-1 text-[11px] text-slate-700 flex-1">
+                  <li>• Everything in Plus</li>
+                  <li>• Very long videos (talks/lectures)</li>
+                  <li>• Export to PDF, DOCX, TXT</li>
+                  <li>• Advanced quiz modes</li>
+                  <li>• Priority processing</li>
+                </ul>
+                <button
+                  onClick={() =>
+                    alert(
+                      "Premium plan is coming soon! For now, all users are on the Basic plan."
+                    )
+                  }
+                  className="mt-4 w-full rounded-full border border-violet-200 bg-white px-3 py-2 text-xs font-semibold text-violet-700 hover:border-violet-400"
+                >
+                  Choose Premium
+                </button>
+              </div>
             </div>
           </div>
         </div>
