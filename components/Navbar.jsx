@@ -61,12 +61,9 @@ export default function Navbar() {
     <header className="sticky top-0 z-30 border-b border-violet-100 bg-[#f5f2ff]/90 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500">
-            <span className="text-sm font-bold text-white">AI</span>
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-slate-900">
-            Loomia
-          </span>
+            <div>
+              <img src="/logo.png" width={200} height={200} alt="Logo" />
+            </div>
         </Link>
 
         {/* IF NOT LOGGED IN */}
