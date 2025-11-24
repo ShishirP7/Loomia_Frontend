@@ -48,7 +48,7 @@ export default function HomePage() {
                 <p className="font-semibold text-slate-900">
                   Supports 98 Languages
                 </p>
-                <p className="text-xs text-slate-500">English, Hindi, Telugu…</p>
+                <p className="text-xs text-slate-500">English, Nepali,Spanish</p>
               </div>
             </div>
 
@@ -104,39 +104,11 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {/* Demo link */}
-              <p className="mt-4 text-xs text-slate-500 text-left">
-                Transcribed Demo:{" "}
-                <a
-                  href="#"
-                  className="text-violet-600 underline underline-offset-2 hover:text-violet-500"
-                >
-                  Steve Jobs&apos; 2005 Stanford Commencement Address
-                </a>
-              </p>
+            
             </div>
           </div>
         </section>
-
-        {/* Trusted by logos */}
-        <section className="mt-16 text-center">
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
-            Trusted by teams worldwide
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-slate-500 sm:grid-cols-4 md:grid-cols-7">
-            {logos.map((logo) => (
-              <div
-                key={logo}
-                className="flex items-center justify-center rounded-xl border border-violet-100 bg-white/80 px-2 py-3"
-              >
-                {logo}
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section className="mt-20">
+  <section className="mt-20">
           <h2 className="text-2xl font-semibold text-slate-900 text-center">
             How to Convert Audio &amp; Video to Text?
           </h2>
@@ -182,6 +154,25 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+        {/* Trusted by logos */}
+        <section className="mt-16 text-center">
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">
+            Trusted by teams worldwide
+          </p>
+          <div className="mt-6 grid grid-cols-2 gap-4 text-xs text-slate-500 sm:grid-cols-4 md:grid-cols-7">
+            {logos.map((logo) => (
+              <div
+                key={logo}
+                className="flex items-center justify-center rounded-xl border border-violet-100 bg-white/80 px-2 py-3"
+              >
+                {logo}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* How it works */}
+      
       </main>
     </div>
   );

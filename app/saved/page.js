@@ -188,13 +188,94 @@ export default function SavedPage() {
 
                   {/* Summary */}
                   {selected.summary && (
-                    <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-3 text-xs text-slate-800">
-                      <h3 className="font-semibold mb-1 text-slate-900">
-                        AI Summary
-                      </h3>
-                      <p>{selected.summary}</p>
+                    <div className="mt-4 rounded-2xl border border-violet-100 bg-violet-50/70 p-4 text-xs text-slate-800 relative">
+
+                      {/* Title + buttons */}
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-slate-900">AI Summary</h3>
+
+                        <div className="flex items-center gap-2">
+
+                          {/* COPY BUTTON */}
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(selected.summary);
+                            }}
+                            className="px-2 py-1 text-[11px] rounded-md bg-white text-violet-600 border border-violet-200 hover:bg-violet-100"
+                          >
+                            Copy
+                          </button>
+
+                          {/* TXT DOWNLOAD */}
+                          <button
+                            onClick={() => {
+                              const blob = new Blob([selected.summary], { type: "text/plain" });
+                              const url = URL.createObjectURL(blob);
+
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `${selected.title || "summary"}.txt`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-2 py-1 text-[11px] rounded-md bg-white text-violet-600 border border-violet-200 hover:bg-violet-100"
+                          >
+                            TXT
+                          </button>
+
+                          {/* DOCX DOWNLOAD */}
+                          <button
+                            onClick={async () => {
+                              const { Document, Packer, Paragraph } = await import("docx");
+
+                              const doc = new Document({
+                                sections: [
+                                  {
+                                    children: [new Paragraph(selected.summary)],
+                                  },
+                                ],
+                              });
+
+                              const blob = await Packer.toBlob(doc);
+                              const url = URL.createObjectURL(blob);
+
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `${selected.title || "summary"}.docx`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-2 py-1 text-[11px] rounded-md bg-white text-violet-600 border border-violet-200 hover:bg-violet-100"
+                          >
+                            Word
+                          </button>
+
+                          {/* PDF DOWNLOAD */}
+                          <button
+                            onClick={() => {
+                              const text = selected.summary.replace(/\n/g, "\n");
+                              const blob = new Blob([text], { type: "application/pdf" });
+                              const url = URL.createObjectURL(blob);
+
+                              const a = document.createElement("a");
+                              a.href = url;
+                              a.download = `${selected.title || "summary"}.pdf`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="px-2 py-1 text-[11px] rounded-md bg-white text-violet-600 border border-violet-200 hover:bg-violet-100"
+                          >
+                            PDF
+                          </button>
+
+                        </div>
+                      </div>
+
+                      {/* SUMMARY TEXT */}
+                      <p className="leading-relaxed">{selected.summary}</p>
                     </div>
                   )}
+
 
                   {/* Transcript viewer (like ConvertPage) */}
                   <div className="mt-4 flex-1 overflow-hidden rounded-2xl border border-violet-100 bg-violet-50/70">

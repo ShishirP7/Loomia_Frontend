@@ -141,6 +141,33 @@ export default function QuizPage() {
       )
       : null;
 
+      const handleDownloadQuiz = () => {
+  if (!questions.length) return;
+
+  let content = `QUIZ EXPORT\nTitle: ${sessionStorage.getItem("title") || "My Quiz"}\n\n`;
+
+  questions.forEach((q, idx) => {
+    content += `Q${idx + 1}. ${q.question}\n`;
+    q.options.forEach((opt, i) => {
+      const letter = String.fromCharCode(65 + i); // A B C D
+      content += `   ${letter}. ${opt}\n`;
+    });
+    content += `Correct Answer: ${String.fromCharCode(65 + q.correct)}\n\n`;
+    content += "--------------------------------------------\n\n";
+  });
+
+  const blob = new Blob([content], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "quiz_export.txt";
+  a.click();
+
+  URL.revokeObjectURL(url);
+};
+
+
   return (
     <div className="min-h-screen bg-[#f5f2ff]">
       <div className="mx-auto max-w-4xl px-4 pt-12 pb-24">
@@ -245,6 +272,14 @@ export default function QuizPage() {
                   className="rounded-full bg-violet-500 px-6 py-2 text-sm font-semibold text-white hover:bg-violet-400 disabled:opacity-60 shadow-md"
                 >
                   {saving ? "Saving..." : "Save Quiz to Profile"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadQuiz}
+                  className="rounded-full border border-blue-300 bg-blue-50 px-6 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100 shadow-sm"
+                >
+                  Download Quiz
                 </button>
               </div>
 
