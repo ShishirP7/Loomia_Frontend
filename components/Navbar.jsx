@@ -123,7 +123,7 @@ export default function Navbar() {
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <div>
-              <img src="/logo.png" width={100} height={100} alt="Logo" />
+              <img src="/Logo.png" width={100} height={100} alt="Logo" />
             </div>
           </Link>
 
