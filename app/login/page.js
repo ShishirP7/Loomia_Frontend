@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://api.loomia.fun";
 
 export default function LoginPage() {
   const router = useRouter();

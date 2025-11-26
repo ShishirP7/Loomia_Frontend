@@ -7,7 +7,7 @@ import { io } from "socket.io-client";
 const FALLBACK_TRANSCRIPT = `Upload a video and click "Start Transcription" 
 to see the generated transcript here.`;
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://api.loomia.fun";
 
 export default function ConvertPage() {
   const router = useRouter();

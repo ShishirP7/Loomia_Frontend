@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://api.loomia.fun";
 
 // Simple Fisher–Yates shuffle
 function shuffleArray(arr) {

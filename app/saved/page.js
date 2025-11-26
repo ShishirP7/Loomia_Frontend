@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = "http://api.loomia.fun";
 
 export default function SavedPage() {
   const router = useRouter();
