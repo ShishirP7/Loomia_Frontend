@@ -14,7 +14,7 @@ export default function Navbar() {
     if (typeof window === "undefined") return;
     const token = localStorage.getItem("token");
     const userStr = localStorage.getItem("user");
-
+//ujhi
     if (token && userStr) {
       try {
         const parsed = JSON.parse(userStr);
